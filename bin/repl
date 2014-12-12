@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+var yargs = require('yargs');
+var loglet = require('loglet');
+var repl = require('../lib/main');
+
+if (yargs.argv.debug) {
+  loglet.setKeys(yargs.argv.debug);
+}
+
+repl.run(yargs.argv);
+
