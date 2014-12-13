@@ -10,13 +10,8 @@ Runtime = require './runtime'
 History = require './history'
 Setup = require './setup'
 
-historyPath = () ->
-  path.join process.env.HOME, '.easydbi/history.json'
-setupPath = () ->
-  path.join process.env.HOME, '.easydbi/setup.json'
-  
-history = History.make historyPath()
-setup = Setup.make setupPath()
+history = History.make()
+setup = Setup.make()
 runtime = new Runtime()
 
 cmdString = (cmd) ->
@@ -39,8 +34,17 @@ runCommand = (cmd, cb) ->
             cb null, setup.showSetups()
           catch e 
             cb e
+        when 'tables'
+          query = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
+          runtime.eval query, cb
+        when 'columns'
+          tableName = cmd.args[1]
+          query = "select column_name, data_type, is_nullable from informatioN_schema.columns where table_schema='public' and table_name='#{tableName}'" 
+          runtime.eval query, cb
         else
           cb {erro: 'unknown_show_argument', command: cmd.command, args: cmd.args}
+    when 'load'
+      runtime.loadScript cmd.args[0], cb
     else
       cb {error: 'unknown_command', command: cmd.command, args: cmd.args}
 
@@ -70,84 +74,28 @@ myEval = (cmd, context, filename, cb) ->
         history.log stmt
         cb null, res
 
+replExit = () ->
+  loglet.log 'exiting...'
+  funclet
+    .start (next) ->
+      history.save next
+    .then (next) ->
+      setup.save next
+    .catch (err) ->
+      runtime.exit (err) ->
+        process.exit()
+    .done () ->
+      runtime.exit (err) ->
+        process.exit()
+
 startRepl = () ->
   inst = repl.start 
     prompt: 'dbi> '
     input: process.stdin
     output: process.stdout
     eval: myEval
-  inst.on 'exit', () ->
-    loglet.log 'exiting...'
-    funclet
-      .start (next) ->
-        history.save next
-      .then (next) ->
-        setup.save next
-      .catch (err) ->
-        runtime.exit (err) ->
-          process.exit()
-      .done () ->
-        runtime.exit (err) ->
-          process.exit()
-  inst.defineCommand 'test',
-    help: 'a test command'
-    action: (cb) ->
-      @displayPrompt()
-  inst.defineCommand 'list',
-    help: 'list connections'
-    action: (cb) ->
-      for key, val of runtime.conns
-        loglet.log key, val.options
-      @displayPrompt()
-  inst.defineCommand 'setup',
-    help: 'setup type, options'
-    action: (cmd) ->
-      try 
-        str = '[' + cmd + ']'
-        args = coffee.eval str
-        runtime.setup args[0], args[1]
-        @displayPrompt()
-      catch e 
-        loglet.error e
-        @displayPrompt()
-  inst.defineCommand 'connect',
-    help: '.connect key'
-    action: (cmd) ->
-      try 
-        args = coffee.eval "[#{cmd}]"
-        runtime.connect args[0], (err, conn) =>
-          if err 
-            loglet.error e
-            @displayPrompt()
-          else
-            @displayPrompt()
-      catch e
-        loglet.error e
-        @displayPrompt()
-  inst.defineCommand 'tables',
-    help: 'show all tables'
-    action: () ->
-      query = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
-      runtime.eval query, (err, rows) =>
-        if err 
-          loglet.error e
-          @displayPrompt()
-        else
-          loglet.log rows
-          @displayPrompt()
-  inst.defineCommand 'columns',
-    help: 'show all tables'
-    action: (table) ->
-      query = "select column_name, data_type, is_nullable from informatioN_schema.columns where table_schema='public' and table_name='#{table}'" 
-      runtime.eval query, (err, rows) =>
-        if err 
-          loglet.error e
-          @displayPrompt()
-        else
-          loglet.log rows
-          @displayPrompt()
+  inst.on 'exit', replExit
   history.bind inst
-  #inst.displayPrompt()
 
 run = (argv) ->
   funclet

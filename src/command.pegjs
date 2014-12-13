@@ -42,12 +42,13 @@
 }
  
 start
-= _ e:Command _ { return e;}
+= _ e:Command queryTerm? _ { return e;}
 
 Command
-= e:SetupCmd _ { return e; }
-/ e:UseCmd _ { return e; }
-/ e:ShowCmd _ { return e; }
+= SetupCmd
+/ UseCmd
+/ ShowCmd
+/ LoadCmd
 
 SetupCmd
 = 'setup' _ name:SymbolExp _ type:StringExp _ options:ObjectExp _ {
@@ -58,7 +59,13 @@ UseCmd
 = 'use' _ name:SymbolExp _ { return { command: 'use', args: [ name ]}; }
 
 ShowCmd
-= 'show' _ 'setups' { return {command: 'show', args: [ 'setups' ]}; }
+= 'show' _ 'columns' _ 'of' _ name:SymbolExp { return {command: 'show', args: ['columns', name]}; }
+/ 'show' _ name:SymbolExp { return {command: 'show', args: [ name ]}; }
+
+LoadCmd
+= 'load' _ filePath:StringExp { return {command: 'load', args: [ filePath ]}; }
+
+/* == Expressions ==*/
 
 Expression
 = ObjectExp
@@ -87,7 +94,6 @@ keyExp
 = s:SymbolExp { return s; }
 / s:StringExp { return s; }
 
-
 /* === SymbolExp === */
 SymbolExp 
 = c1:symbol1stChar rest:symbolRestChar* { return makeSymbolAST(c1, rest); }
@@ -97,6 +103,9 @@ symbol1stChar
 
 symbolRestChar
 = [^\(\)\;\ \"\'\,\`\{\}\.\,\:\[\]]
+
+queryTerm
+= ';'
 
 /* === STRING === */
 

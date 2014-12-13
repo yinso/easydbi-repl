@@ -7,8 +7,10 @@ DBI = require 'easydbi'
 _ = require 'underscore'
 
 class Setup
-  @make: (filePath) ->
-    new Setup(filePath)
+  @defaultPath: () ->
+    path.join process.env.HOME, '.easydbi/setup.json'
+  @make: (filePath = @defaultPath()) ->
+    new @(filePath)
   constructor: (@filePath) ->
     @inner = {}
   load: (cb) ->
@@ -47,7 +49,6 @@ class Setup
         options: opt
     setups
   save: (cb) ->
-    loglet.log 'Setup.save', @inner
     funclet
       .start (next) =>
         filelet.mkdirp path.dirname(@filePath), (err) ->

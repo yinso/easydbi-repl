@@ -6,8 +6,10 @@ _ = require 'underscore'
 loglet = require 'loglet'
 
 class History
-  @make: (filePath) ->
-    new History filePath
+  @defaultPath: () ->
+    path.join process.env.HOME, '.easydbi/history.json'
+  @make: (filePath = @defaultPath()) ->
+    new @ filePath
   constructor: (@filePath) ->
     @inner = []
   bind: (repl) ->
