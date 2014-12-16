@@ -35,16 +35,18 @@ runCommand = (cmd, cb) ->
           catch e 
             cb e
         when 'tables'
-          query = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
-          runtime.eval query, cb
+          runtime.showTables cb
         when 'columns'
           tableName = cmd.args[1]
-          query = "select column_name, data_type, is_nullable from informatioN_schema.columns where table_schema='public' and table_name='#{tableName}'" 
-          runtime.eval query, cb
+          runtime.showColumns tableName, cb
         else
           cb {erro: 'unknown_show_argument', command: cmd.command, args: cmd.args}
     when 'load'
       runtime.loadScript cmd.args[0], cb
+    when 'deploy'
+      runtime.deploy cmd.args[0], cmd.args[1], cb
+    when 'quit'
+      replExit()
     else
       cb {error: 'unknown_command', command: cmd.command, args: cmd.args}
 

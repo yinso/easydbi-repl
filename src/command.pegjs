@@ -49,6 +49,8 @@ Command
 / UseCmd
 / ShowCmd
 / LoadCmd
+/ DeployCmd
+/ QuitCmd
 
 SetupCmd
 = 'setup' _ name:SymbolExp _ type:StringExp _ options:ObjectExp _ {
@@ -64,6 +66,12 @@ ShowCmd
 
 LoadCmd
 = 'load' _ filePath:StringExp { return {command: 'load', args: [ filePath ]}; }
+
+DeployCmd
+= 'deploy' _ '(' _ module:(StringExp / SymbolExp) _ ',' _ filePath:StringExp _ ')' _ { return {command: 'deploy', args: [ module, filePath ]}; }
+
+QuitCmd
+= 'quit' { return {command: 'quit', args: []}; }
 
 /* == Expressions ==*/
 
