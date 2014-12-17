@@ -50,8 +50,7 @@ runCommand = (cmd, cb) ->
     else
       cb {error: 'unknown_command', command: cmd.command, args: cmd.args}
 
-myEval = (cmd, context, filename, cb) ->
-  stmt = cmdString(cmd)
+innerEval = (stmt, cb) ->
   if stmt == ''
     cb null
   else if stmt.match /^\:/
@@ -76,6 +75,10 @@ myEval = (cmd, context, filename, cb) ->
         history.log stmt
         cb null, res
 
+myEval = (cmd, context, filename, cb) ->
+  stmt = cmdString(cmd)
+  innerEval stmt, cb
+
 replExit = () ->
   loglet.log 'exiting...'
   funclet
@@ -90,14 +93,28 @@ replExit = () ->
       runtime.exit (err) ->
         process.exit()
 
-startRepl = () ->
-  inst = repl.start 
-    prompt: 'dbi> '
-    input: process.stdin
-    output: process.stdout
-    eval: myEval
-  inst.on 'exit', replExit
-  history.bind inst
+startRepl = (argv) ->
+  funclet
+    .start (next) ->
+      if argv.use
+        innerEval ":use #{argv.use}", (err) ->
+          if err
+            next err
+          else
+            next null
+      else
+        next null
+    .catch (err) ->
+      loglet.error err
+      replExit()
+    .done () ->
+      inst = repl.start 
+        prompt: 'dbi> '
+        input: process.stdin
+        output: process.stdout
+        eval: myEval
+      inst.on 'exit', replExit
+      history.bind inst
 
 run = (argv) ->
   funclet
@@ -108,7 +125,7 @@ run = (argv) ->
     .catch (err) ->
       loglet.croak err
     .done () ->
-      startRepl()
+      startRepl(argv)
 
 module.exports = 
   run: run
