@@ -21,7 +21,8 @@ dependencies:
   filelet: '>=0.1.0'
   funclet: '>=0.1.1'
   yargs: =1.3.3
-  easydbi: '>=0.1.2'
+  easydbi: '>=0.1.3'
+  easydbi-pg: '>=0.1.2'
   coffee-bean: '>=0.3.0'
   pegjs: =0.8.0
   semver: =4.1.0

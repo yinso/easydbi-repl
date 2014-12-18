@@ -7,6 +7,7 @@ fs = require 'fs'
 funclet = require 'funclet'
 _ = require 'underscore'
 semver = require 'semver'
+require 'coffee-script/register'
 
 pathName = (filePath) ->
   path.basename filePath, path.extname(filePath)
@@ -41,13 +42,20 @@ class Runtime
     if @conns.hasOwnProperty(key)
       cb null
     else
-      DBI.connect key, (err, conn) =>
-        if err 
-          cb err
-        else
-          @conns[key] = conn
-          @current = conn
-          cb null
+      try 
+        type = DBI.getPool(key).type
+        DBI.load key, require "../module/#{type}/base"
+        DBI.load key, require "../module/#{type}/version"
+        DBI.connect key, (err, conn) =>
+          if err 
+            cb err
+          else
+            @conns[key] = conn
+        
+            @current = conn
+            cb null
+      catch e
+        cb e
   eval: (cmd, args, cb) ->
     if arguments.length == 2
       cb = args
@@ -60,12 +68,18 @@ class Runtime
           cb err
         else 
           cb null, rows
+  requireModule: (modulePath, cb) ->
+    try
+      DBI.load @current.key, require(path.resolve(modulePath))
+      cb null
+    catch e
+      cb e
   showTables: (cb) ->
-    query = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
-    @eval query, cb
+    @current.showTables {}, cb
   showColumns: (tableName, cb) ->
-    query = "select column_name, data_type, is_nullable from informatioN_schema.columns where table_schema='public' and table_name='#{tableName}'" 
-    @eval query, cb
+    @current.showColumns {tableName: tableName}, cb
+  display: (type, cb) ->
+    cb null, @current
   loadScript: (filePath, cb) ->
     fs.readFile filePath, 'utf8', (err, data) =>
       if err 
@@ -112,7 +126,7 @@ class Runtime
           else
             next null
       .then (next) =>
-        @eval 'select * from __version_t where module = $module and version = $version', {module: moduleName, version: version}, (err, rows) =>
+        @current.hasModuleVersion moduleName, version, (err, rows) =>
           if err 
             next err
           else if rows.length > 0 # exists - we do not do anything.
@@ -154,7 +168,7 @@ class Runtime
             next null
       .catch(cb)
       .done () =>
-        @eval 'insert into __version_t (module, version, query) values ($module, $version, $query)', {module: module, version: version, query: query}, cb
+        @current.logModuleVersion module, version, query, cb
   exit: (cb) ->
     # we will need to exit all of the connections... 
     conns = []

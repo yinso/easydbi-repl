@@ -39,39 +39,27 @@
       return chars;
     }
   }
+  
+  function makeFuncallAST(name, args) {
+    return {command: name, args: args }; 
+  }
 }
  
 start
 = _ e:Command queryTerm? _ { return e;}
 
 Command
-= SetupCmd
-/ UseCmd
-/ ShowCmd
-/ LoadCmd
-/ DeployCmd
-/ QuitCmd
+= FuncallExp
 
-SetupCmd
-= 'setup' _ name:SymbolExp _ type:StringExp _ options:ObjectExp _ {
-  return {command: 'setup', args: [ name, type, options] }; 
-}
+FuncallExp
+= funcName:SymbolExp _ argsExp:argsExpList _ { return makeFuncallAST(funcName, argsExp); }
 
-UseCmd
-= 'use' _ name:SymbolExp _ { return { command: 'use', args: [ name ]}; }
+argsExpList
+= '(' _ arg:Expression _ rest:restArgExp* ')' _ { return [ arg ].concat(rest); }
+/ '(' _ ')' _ { return []; }
 
-ShowCmd
-= 'show' _ 'columns' _ 'of' _ name:SymbolExp { return {command: 'show', args: ['columns', name]}; }
-/ 'show' _ name:SymbolExp { return {command: 'show', args: [ name ]}; }
-
-LoadCmd
-= 'load' _ filePath:StringExp { return {command: 'load', args: [ filePath ]}; }
-
-DeployCmd
-= 'deploy' _ '(' _ module:(StringExp / SymbolExp) _ ',' _ filePath:StringExp _ ')' _ { return {command: 'deploy', args: [ module, filePath ]}; }
-
-QuitCmd
-= 'quit' { return {command: 'quit', args: []}; }
+restArgExp
+= ',' _ arg:Expression _ { return arg; }
 
 /* == Expressions ==*/
 

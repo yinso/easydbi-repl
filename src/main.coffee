@@ -25,28 +25,27 @@ runCommand = (cmd, cb) ->
         cb null
       catch e
         cb e
+    when 'showSetups'
+      try 
+        cb null, setup.showSetups()
+      catch e 
+        cb e
     when 'use'
       runtime.connect cmd.args[0], cb
-    when 'show'
-      switch cmd.args[0]
-        when 'setups'
-          try 
-            cb null, setup.showSetups()
-          catch e 
-            cb e
-        when 'tables'
-          runtime.showTables cb
-        when 'columns'
-          tableName = cmd.args[1]
-          runtime.showColumns tableName, cb
-        else
-          cb {erro: 'unknown_show_argument', command: cmd.command, args: cmd.args}
+    when 'showTables'
+      runtime.showTables cb
+    when 'showColumns'
+      runtime.showColumns cmd.args[0], cb
     when 'load'
       runtime.loadScript cmd.args[0], cb
     when 'deploy'
       runtime.deploy cmd.args[0], cmd.args[1], cb
     when 'quit'
       replExit()
+    when 'require'
+      runtime.requireModule cmd.args[0], cb
+    when 'conn'
+      runtime.display 'conn', cb
     else
       cb {error: 'unknown_command', command: cmd.command, args: cmd.args}
 
@@ -97,7 +96,7 @@ startRepl = (argv) ->
   funclet
     .start (next) ->
       if argv.use
-        innerEval ":use #{argv.use}", (err) ->
+        innerEval ":use('#{argv.use}')", (err) ->
           if err
             next err
           else
