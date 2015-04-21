@@ -78,7 +78,7 @@ NullExp
 = 'null' _ { return null; }
 
 ObjectExp
-= '{' keyVals:keyValExp* '}' _ { return makeObjectAST(keyVals); }
+= '{' _ keyVals:keyValExp* _ '}' _ { return makeObjectAST(keyVals); }
 
 keyValExp
 = key:keyExp _ ':' _ val:Expression _ keyValDelim? { return [ key, val ]; }

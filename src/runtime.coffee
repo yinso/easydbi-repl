@@ -51,7 +51,6 @@ class Runtime
             cb err
           else
             @conns[key] = conn
-        
             @current = conn
             cb null
       catch e
@@ -74,12 +73,14 @@ class Runtime
       cb null
     catch e
       cb e
-  showTables: (cb) ->
-    @current.showTables {}, cb
-  showColumns: (tableName, cb) ->
-    @current.showColumns {tableName: tableName}, cb
-  display: (type, cb) ->
-    cb null, @current
+  runFunc: (cmd, args, cb) ->
+    if @current[cmd] 
+      try 
+        @current[cmd] args..., cb
+      catch e
+        cb e
+    else
+      cb {error: 'unknown_command', command: cmd, args: args}
   loadScript: (filePath, cb) ->
     fs.readFile filePath, 'utf8', (err, data) =>
       if err 
@@ -113,7 +114,7 @@ class Runtime
     version = path.basename filePath, path.extname(filePath)
     funclet
       .start (next) =>
-        @showColumns '__version_t', (err, columns) =>
+        @current.showColumns '__version_t', (err, columns) =>
           if err
             next err
           else if columns.length == 0 # table doesn't exist. need to create it.

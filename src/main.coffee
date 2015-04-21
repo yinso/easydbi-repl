@@ -32,10 +32,6 @@ runCommand = (cmd, cb) ->
         cb e
     when 'use'
       runtime.connect cmd.args[0], cb
-    when 'showTables'
-      runtime.showTables cb
-    when 'showColumns'
-      runtime.showColumns cmd.args[0], cb
     when 'load'
       runtime.loadScript cmd.args[0], cb
     when 'deploy'
@@ -44,34 +40,32 @@ runCommand = (cmd, cb) ->
       replExit()
     when 'require'
       runtime.requireModule cmd.args[0], cb
-    when 'conn'
-      runtime.display 'conn', cb
     else
-      cb {error: 'unknown_command', command: cmd.command, args: cmd.args}
+      runtime.runFunc cmd.command, cmd.args, cb
 
 innerEval = (stmt, cb) ->
   if stmt == ''
     cb null
   else if stmt.match /^\:/
-    stmt = stmt.substring 1
     try 
-      parsed = cmdParser.parse stmt
+      parsed = cmdParser.parse stmt.substring(1)
       runCommand parsed, (err, res) ->
+        history.log stmt
         if err
           loglet.error err
-          cb null
+          cb null, undefined
         else 
           cb null, res
     catch e 
       loglet.error e
-      cb null
+      cb null, undefined
   else
     runtime.eval stmt, (err, res) ->
+      history.log stmt
       if err
         loglet.error err
-        cb null
+        cb null, undefined
       else
-        history.log stmt
         cb null, res
 
 myEval = (cmd, context, filename, cb) ->
@@ -97,6 +91,15 @@ startRepl = (argv) ->
     .start (next) ->
       if argv.use
         innerEval ":use('#{argv.use}')", (err) ->
+          if err
+            next err
+          else
+            next null
+      else
+        next null
+    .then (next) ->
+      if argv.require
+        innerEval ":require('#{argv.require}')", (err) ->
           if err
             next err
           else

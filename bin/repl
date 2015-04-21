@@ -2,6 +2,7 @@
 
 var yargs = require('yargs')
   .alias('u', 'use')
+  .alias('r', 'require')
   ;
 var loglet = require('loglet');
 var repl = require('../lib/main');

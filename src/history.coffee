@@ -42,7 +42,8 @@ class History
       .done () =>
         cb null
   log: (cmd) ->
-    if not _.contains @inner, cmd
-      @inner.push cmd
+    if _.contains @inner, cmd
+      @inner = _.filter @inner, (item) -> item != cmd
+    @inner.push cmd
 
 module.exports = History
